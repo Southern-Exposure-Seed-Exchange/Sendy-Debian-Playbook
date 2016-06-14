@@ -1,0 +1,43 @@
+---
+# Install Programs, Add User, Configure Services
+
+- name: Ensure Package Cache is Up to Date
+  apt: update_cache=yes cache_valid_time=3600
+  become: yes
+
+- name: Ensure Basic Utilities are Installed
+  apt: name="{{ item }}"
+  with_items:
+    - rsync
+    - sudo
+    - vim
+    - zsh
+  become: yes
+
+- name: Ensure Default User is Created
+  user: user="{{ default_user.name }}" append=yes groups=sudo shell=/usr/bin/zsh
+  become: yes
+
+- name: Ensure the Default User has Authorized the Proper Keys
+  authorized_key: key="{{ item }}" user="{{ default_user.name }}"
+  with_items: "{{ default_user.authorized_keys }}"
+  become: yes
+
+- name: Ensure SSH is Correctly Configured
+  lineinfile: dest=/etc/ssh/sshd_config backup=yes
+              line="{{ item.line }}" regexp="{{ item.reg }}"
+  with_items:
+    - { line: "PermitRootLogin no", reg: "^#? ?PermitRootLogin.*" }
+    - { line: "Port {{ ssh.port }}", reg: "#?Port.*" }
+  notify: restart ssh
+  become: yes
+
+- name: Ensure the Hostname is Correctly Set
+  copy: dest=/etc/hostname content="{{ ansible_hostname }}"
+        owner=root group=root mode=0644 backup=yes
+  become: yes
+
+- name: Ensure the Public IP is Correctly Routed
+  lineinfile: dest=/etc/hosts regexp=".*{{ ansible_hostname }}" backup=yes
+              line="{{ public_ip }}  {{ ansible_hostname }}.{{ nginx.domain }} {{ ansible_hostname }}"
+  become: yes

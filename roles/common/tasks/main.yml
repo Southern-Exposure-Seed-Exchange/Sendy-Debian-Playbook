@@ -1,0 +1,7 @@
+---
+
+- name: Ensure System & Users are Correctly Configured
+  include: setup.yml
+  tags:
+    - setup
+    - system
