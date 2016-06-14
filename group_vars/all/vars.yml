@@ -15,3 +15,10 @@ nginx:
   ssl_port: 443
   host: sendy
   domain: southernexposure.com
+
+postfix:
+  host: sese-sendy
+  domain: southernexposure.com
+
+opendkim:
+  selector: 201606

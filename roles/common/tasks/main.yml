@@ -17,3 +17,9 @@
 - name: Ensure PHP-FPM is Correctly Configured
   include: php.yml
   tags: php
+
+- name: Ensure Postfix is Correctly Configured
+  include: postfix.yml
+  tags:
+    - mail
+    - postfix

@@ -15,3 +15,11 @@
 - name: restart php
   service: name=php5-fpm state=restarted
   become: yes
+
+- name: restart postfix
+  service: name=postfix state=restarted
+  become: yes
+
+- name: restart opendkim
+  service: name=opendkim state=restarted
+  become: yes

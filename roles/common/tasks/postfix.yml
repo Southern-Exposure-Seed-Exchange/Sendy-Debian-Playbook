@@ -1,0 +1,91 @@
+---
+
+- name: Ensure Postfix & Mail Utilities are Installed
+  apt: name="{{ item }}"
+  with_items: ['mailutils', 'postfix', 'opendkim', 'opendkim-tools']
+  become: yes
+
+- name: Ensure Postfix is Configured as Send-Only
+  lineinfile: dest=/etc/postfix/main.cf
+              line="{{ item.line }}" regexp="{{ item.reg }}"
+  with_items:
+    - { line: 'myhostname = {{ postfix.host }}.{{ postfix.domain }}',
+        reg: '^#?myhostname = .*' }
+    - { line: 'myorigin = $mydomain', reg: '^#?myorigin = .*' }
+    - { line: 'relayhost =', reg: '^#?relayhost =.*' }
+    - { line: 'inet_interfaces = loopback-only', reg: '^#?inet_interfaces = .*' }
+    - { line: 'mydestination =', reg: '^#?mydestination =.*' }
+    - { line: 'smtp_use_tls = yes', reg: '^#?smtp_use_tls ?=.*' }
+    - { line: 'smtp_tls_security_level = may', reg: '^#?smtp_tls_security_level =.*' }
+  notify: restart postfix
+  become: yes
+
+
+- name: Ensure the Postfix User has Access to OpenDKIM
+  user: name=postfix append=yes groups=opendkim
+  become: yes
+
+- name: Ensure OpenDKIM is Correctly Configured
+  copy: src=opendkim.conf dest=/etc/opendkim.conf mode="u=rw,go=r" backup=yes
+  notify: restart opendkim
+  become: yes
+
+- name: Ensure the OpenDKIM Directories Exist
+  file: state=directory path="{{ item.path }}" mode="{{ item.mode }}"
+        owner=opendkim group=opendkim
+  with_items:
+    - { path: "/etc/opendkim", mode: "u+rw,go+r" }
+    - { path: "/etc/opendkim/keys", mode: "go-rw" }
+  notify: restart opendkim
+  become: yes
+
+- name: Ensure the OpenDKIM Files are Correctly Configured
+  template: dest="/etc/opendkim/{{ item.name }}" src="{{ item.temp }}.j2"
+            backup=yes owner=opendkim group=opendkim
+  with_items:
+    - { name: 'trusted.hosts', temp: 'opendkim.hosts' }
+    - { name: 'signing.table', temp: 'opendkim.signing' }
+    - { name: 'key.table', temp: 'opendkim.key' }
+  notify: restart opendkim
+  become: yes
+
+- name: Ensure OpenDKIM Keys Exist
+  shell: opendkim-genkey -b 2048 -r -s {{ opendkim.selector }}
+         chdir=/etc/opendkim/keys
+         creates="/etc/opendkim/keys/{{ opendkim.selector }}.private"
+  notify: restart opendkim
+  become: yes
+
+- name: Ensure the OpenDKIM Keys Have the Correct Permissions
+  file: state=directory path="/etc/opendkim/keys" mode="go-rw"
+        owner=opendkim group=opendkim recurse=yes
+  notify: restart opendkim
+  become: yes
+
+- name: Ensure the OpenDKIM Socket Directory Exists
+  file: state=directory path=/var/spool/postfix/opendkim
+        owner=opendkim group=postfix
+  notify: restart opendkim
+  become: yes
+
+- name: Ensure the OpenDKIM Socket is Correctly Configured
+  lineinfile: dest=/etc/default/opendkim backup=yes
+              line="SOCKET=\"local:/var/spool/postfix/opendkim/opendkim.socket\""
+              regexp="#?SOCKET=.*"
+  notify: restart opendkim
+  become: yes
+
+- name: Ensure Postfix is Configured to use OpenDKIM
+  lineinfile: dest=/etc/postfix/main.cf
+              line="{{ item.line }}" regexp="{{ item.reg }}"
+  with_items:
+    - { line: 'milter_default_action = accept',
+        reg: '^#?milter_default_action =.*' }
+    - { line: 'milter_protocol = 2',
+        reg: '^#?milter_protocol =.*' }
+    - { line: 'smtpd_milters = local:/opendkim/opendkim.socket',
+        reg: '^#?smtpd_milters =.*' }
+    - { line: 'non_smtpd_milters = local:/opendkim/opendkim.socket',
+        reg: '^#?non_smtpd_milters =.*' }
+  notify: restart postfix
+  become: yes
