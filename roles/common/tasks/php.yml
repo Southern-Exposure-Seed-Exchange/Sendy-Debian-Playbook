@@ -1,0 +1,22 @@
+---
+
+- name: Ensure PHP-FPM is Installed
+  apt: name="{{ item }}"
+  with_items: ['php5-fpm', 'php5-mysql', 'php5-curl']
+  become: yes
+
+- name: Ensure PHP-FPM is Correctly Configured
+  lineinfile: dest=/etc/php5/fpm/php.ini backup=yes
+              line="{{ item.line }}" regexp="{{ item.reg }}"
+  with_items:
+    - { line: 'cgi.fix_pathinfo=0', reg: '^cgi.fix_pathinfo.*' }
+  notify: restart php
+  become: yes
+
+- name: Ensure the PHP-FPM Pool is Correctly Configured
+  lineinfile: dest=/etc/php5/fpm/pool.d/www.conf backup=yes
+              line="{{ item.line }}" regexp="{{ item.reg }}"
+  with_items:
+    - { line: 'listen = /var/run/php5-fpm.sock', reg: '^listen = .*' }
+  notify: restart php
+  become: yes

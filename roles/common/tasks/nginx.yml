@@ -1,0 +1,27 @@
+---
+# Install & Configure Nginx, Setup Sendy Host
+
+- name: Ensure Nginx is Installed
+  apt: name="nginx-extras"
+  become: yes
+
+- name: Ensure Nginx is Correctly Configured
+  template: dest=/etc/nginx/nginx.conf src=nginx.conf.j2 backup=yes
+  notify: restart nginx
+  become: yes
+
+- name: Ensure the Nginx Log Folder Exists
+  file: path=/var/www/logs state=directory owner=www-data group=www-data
+  notify: restart nginx
+  become: yes
+
+- name: Ensure the Sendy Nginx Host is Correctly Configured
+  template: dest=/etc/nginx/sites-available/default src=sendy.nginx.conf.j2 backup=yes
+  notify: restart nginx
+  become: yes
+
+- name: Ensure the Sendy Nginx Host is Enabled
+  file: state=link src=/etc/nginx/sites-available/default
+        dest=/etc/nginx/sites-enabled/default
+  notify: restart nginx
+  become: yes

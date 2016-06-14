@@ -1,0 +1,68 @@
+server {
+    listen {{ nginx.port }} default_server;
+    listen [::]:{{ nginx.port }} default_server ipv6only=on;
+    listen {{ nginx.ssl_port }} ssl default_server;
+    listen [::]:{{ nginx.ssl_port }} ssl default_server;
+
+    server_name {{ nginx.host }}.{{ nginx.domain }};
+    server_name _;
+
+    access_log off;
+    error_log /var/www/logs/error.log;
+
+
+    root /var/www/html;
+    index index.php;
+
+    add_header X-Robots-Tag "noindex, noarchive";
+
+    location / {
+        try_files $uri $uri/ $uri.php?$args;
+    }
+    location /l/ {
+        rewrite ^/l/([a-zA-Z0-9/]+)$ /l.php?i=$1 last;
+    }
+    location /t/ {
+        rewrite ^/t/([a-zA-Z0-9/]+)$ /t.php?i=$1 last;
+    }
+    location /w/ {
+        rewrite ^/w/([a-zA-Z0-9/]+)$ /w.php?i=$1 last;
+    }
+    location /unsubscribe/ {
+        rewrite ^/unsubscribe/(.*)$ /unsubscribe.php?i=$1 last;
+    }
+    location /subscribe/ {
+        rewrite ^/subscribe/(.*)$ /subscribe.php?i=$1 last;
+    }
+
+    # pass PHP scripts to FastCGI server
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_pass unix:/var/run/php5-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_buffer_size 128k;
+        fastcgi_buffers 256 16k;
+        fastcgi_busy_buffers_size 256k;
+        fastcgi_temp_file_write_size 256k;
+        fastcgi_read_timeout 300;
+
+        include fastcgi_params;
+        include fastcgi.conf;
+    }
+
+    gzip on;
+    gzip_types text/css text/x-component application/x-javascript application/javascript text/javascript text/x-js text/richtext image/svg+xml text/plain text/xsd text/xsl text/xml image/x-icon;
+    location ~ \.(css|htc|less|js|js2|js3|js4)$ {
+        expires 31536000s;
+        add_header Pragma "public";
+        add_header Cache-Control "max-age=31536000, public";
+        log_not_found off;
+    }
+    location ~ \.(asf|asx|wax|wmv|wmx|avi|bmp|class|divx|doc|docx|eot|exe|gif|gz|gzip|ico|jpg|jpeg|jpe|json|mdb|mid|midi|mov|qt|mp3|m4a|mp4|m4v|mpeg|mpg|mpe|mpp|otf|odb|odc|odf|odg|odp|ods|odt|ogg|pdf|png|pot|pps|ppt|pptx|ra|ram|svg|svgz|swf|tar|tif|tiff|ttf|ttc|wav|wma|wri|woff|xla|xls|xlsx|xlt|xlw|zip)$ {
+        expires 31536000s;
+        add_header Pragma "public";
+        add_header Cache-Control "max-age=31536000, public";
+        log_not_found off;
+    }
+}

@@ -5,3 +5,15 @@
   tags:
     - setup
     - system
+
+- name: Ensure the MySQL Database is Correctly Configured
+  include: mysql.yml
+  tags: mysql
+
+- name: Ensure Nginx is Correctly Configured
+  include: nginx.yml
+  tags: nginx
+
+- name: Ensure PHP-FPM is Correctly Configured
+  include: php.yml
+  tags: php

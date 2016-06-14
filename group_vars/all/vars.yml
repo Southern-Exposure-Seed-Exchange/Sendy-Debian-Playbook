@@ -11,4 +11,7 @@ ssh:
   port: 8282
 
 nginx:
+  port: 80
+  ssl_port: 443
+  host: sendy
   domain: southernexposure.com
