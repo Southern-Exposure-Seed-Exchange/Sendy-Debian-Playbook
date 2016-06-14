@@ -8,6 +8,7 @@
 - name: Ensure Basic Utilities are Installed
   apt: name="{{ item }}"
   with_items:
+    - htop
     - rsync
     - sudo
     - vim
