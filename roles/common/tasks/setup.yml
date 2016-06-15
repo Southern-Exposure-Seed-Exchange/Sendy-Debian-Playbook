@@ -11,6 +11,7 @@
     - htop
     - rsync
     - sudo
+    - unzip
     - vim
     - zsh
   become: yes
@@ -22,6 +23,10 @@
 - name: Ensure the Default User has Authorized the Proper Keys
   authorized_key: key="{{ item }}" user="{{ default_user.name }}"
   with_items: "{{ default_user.authorized_keys }}"
+  become: yes
+
+- name: Ensure the Root User has the Sendy Upgrade Script
+  copy: dest="/root/" src=sendy_upgrade.sh mode="u+x"
   become: yes
 
 - name: Ensure SSH is Correctly Configured
