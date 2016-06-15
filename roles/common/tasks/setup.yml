@@ -44,3 +44,34 @@
   lineinfile: dest=/etc/hosts regexp=".*{{ ansible_hostname }}" backup=yes
               line="{{ public_ip }}  {{ ansible_hostname }}.{{ nginx.domain }} {{ ansible_hostname }}"
   become: yes
+
+- name: Ensure Unattended Upgrades is Installed
+  apt: name="{{ item }}"
+  with_items:
+    - unattended-upgrades
+    - apt-listchanges
+  become: yes
+
+- name: Ensure the Unattended Upgrades Service is Enabled
+  service: name=unattended-upgrades enabled=yes
+  become: yes
+
+- name: Ensure Unattended Upgrades is Correctly Configured
+  lineinfile: dest=/etc/apt/apt.conf.d/50unattended-upgrades backup=yes
+              regexp=".*Upgrade::Mail .*;" line='Unattended-Upgrade::Mail "root";'
+  become: yes
+
+- name: Ensure the Unattended Upgrades Apt Stub is Correctly Configured
+  lineinfile: dest=/etc/apt/apt.conf.d/20auto-upgrades backup=yes create=yes
+              regexp="{{ item.reg }}" line="{{ item.line }}"
+  with_items:
+    - { reg: '.*Update-Package-Lists .*;',
+        line: 'APT::Periodic::Update-Package-Lists "1";' }
+    - { reg: '.*Unattended-Upgrade .*;',
+        line: 'APT::Periodic::Unattended-Upgrade "1";' }
+  become: yes
+
+- name: Ensure Apt's List-Changes Utility is Correctly Configured
+  lineinfile: dest=/etc/apt/listchanges.conf backup=yes
+              regexp=".*which=.*" line="which=both"
+  become: yes
