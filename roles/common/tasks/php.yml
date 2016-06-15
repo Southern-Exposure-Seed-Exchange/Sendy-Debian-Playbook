@@ -10,6 +10,7 @@
               line="{{ item.line }}" regexp="{{ item.reg }}"
   with_items:
     - { line: 'cgi.fix_pathinfo=0', reg: '^cgi.fix_pathinfo.*' }
+    - { line: 'date.timezone = America/New_York', reg: ';?date.timezone =.*' }
   notify: restart php
   become: yes
 
