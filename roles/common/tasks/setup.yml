@@ -28,6 +28,8 @@
   lineinfile: dest=/etc/ssh/sshd_config backup=yes
               line="{{ item.line }}" regexp="{{ item.reg }}"
   with_items:
+    - { line: "AddressFamily inet", reg: "^#?AddressFamily .*" }
+    - { line: "PasswordAuthentication no", reg: "^#?PasswordAuthentication .*" }
     - { line: "PermitRootLogin no", reg: "^#? ?PermitRootLogin.*" }
     - { line: "Port {{ ssh.port }}", reg: "#?Port.*" }
   notify: restart ssh
