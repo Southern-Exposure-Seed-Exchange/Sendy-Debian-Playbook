@@ -9,6 +9,8 @@
   apt: name="{{ item }}"
   with_items:
     - htop
+    - python3
+    - python3-pip
     - rsync
     - sudo
     - unzip
@@ -26,7 +28,20 @@
   become: yes
 
 - name: Ensure the Root User has the Sendy Upgrade Script
-  copy: dest="/root/" src=sendy_upgrade.sh mode="u+x"
+  copy: dest="/root/" src="sendy_upgrade.sh" mode="u+x"
+  become: yes
+
+- name: Ensure the Root User has the Bounce Checking Script
+  template: dest=/root/check_bounces.py src=check_bounces.py.j2 backup=yes
+  become: yes
+
+- name: Ensure the Bounce Script's Python Dependencies are Installed
+  pip: name=pymysql executable=pip3
+  become: yes
+
+- name: Ensure the Bounce Script is Run Daily by Cron
+  cron: special_time=daily name="Mark Bounces from Mail Log in Sendy"
+        job="python3 /root/check_bounces.py > /dev/null"
   become: yes
 
 - name: Ensure SSH is Correctly Configured

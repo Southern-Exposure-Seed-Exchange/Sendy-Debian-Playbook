@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+import re
+
+import pymysql
+
+DB_HOST = 'localhost'
+DB_USER = 'sendy'
+DB_NAME = 'sendy'
+DB_PASSWORD = '{{ vaulted_mysql_sendy_password }}'
+
+EMAIL_REGEX = re.compile(r'to=<(.*?)>,')
+
+
+def main():
+    lines = []
+    with open('/var/log/mail.info') as mail_file:
+        lines = mail_file.readlines()
+
+    bounces = [
+        line for line in lines
+        #: Mail has bounced
+        if 'status=bounced' in line and
+        #: Bounce not caused by message contents
+        '552' not in line and
+        #: Bounce not caused by high send rate
+        'receiving mail at a rate' not in line
+    ]
+
+    emails = [parse_email(bounce) for bounce in bounces]
+    connection, cursor = get_database_cursor()
+    _ = [mark_email_as_bounced(cursor, email) for email in emails]
+    connection.commit()
+
+
+def parse_email(line):
+    result = EMAIL_REGEX.search(line)
+    if result:
+        return result.group(1)
+
+
+def mark_email_as_bounced(cursor, email_address):
+    select_query = "SELECT * FROM subscribers WHERE email=%(email)s"
+    cursor.execute(select_query, {"email": email_address})
+    if cursor.rowcount > 0:
+        update_query = "UPDATE subscribers SET bounced=1 WHERE email=%(email)s"
+        cursor.execute(update_query, {"email": email_address})
+        return email_address
+
+
+def get_database_cursor():
+    connection = pymysql.connect(
+        host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_NAME,
+        charset='utf8', cursorclass=pymysql.cursors.DictCursor)
+    return connection, connection.cursor()
+
+
+if __name__ == '__main__':
+    main()
