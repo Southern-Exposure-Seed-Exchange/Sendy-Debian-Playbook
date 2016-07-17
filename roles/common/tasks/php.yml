@@ -21,3 +21,10 @@
     - { line: 'listen = /var/run/php5-fpm.sock', reg: '^listen = .*' }
   notify: restart php
   become: yes
+
+- name: Ensure the Sendy Cronjob is Set
+  cron: minute="*/{{ item.every }}" name="{{ item.name }}" job="{{ item.job }} > /dev/null 2>&1"
+  with_items:
+    - { name: "Run Sending Tasks", job: "php /var/www/html/scheduled.php", every: "5" }
+    - { name: "Run Autoresponder Tasks", job: "php /var/www/html/autoresponders.php", every: "1" }
+  become: yes
